@@ -21,9 +21,34 @@ interface ShellCommandResult {
   exitCode: number | null;
 }
 
+// Define tool schemas
+const executeShellCommandSchema = {
+  name: "executeShellCommand",
+  description: "Execute a shell command and return the result",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      command: {
+        type: "string",
+        description: "The shell command to execute",
+      },
+    },
+    required: ["command"],
+  },
+};
+
+const finishedSchema = {
+  name: "finished",
+  description: "Call this tool when the task is complete to end the conversation",
+  input_schema: {
+    type: "object" as const,
+    properties: {},
+    required: [],
+  },
+};
+
 const executeShellCommand = async (
   command: string,
-  stdinInput?: string,
   timeout: number = 10000
 ): Promise<ShellCommandResult> => {
   return new Promise((resolve) => {
@@ -56,54 +81,20 @@ const executeShellCommand = async (
         exitCode: code,
       });
     });
-
-    // Provide stdin input if specified
-    if (stdinInput) {
-      childProcess.stdin.write(stdinInput);
-      childProcess.stdin.end();
-    }
   });
 };
 
 // Function to run the agent loop
 const runAgentLoop = async (initialPrompt: string) => {
-  // Define the tools
+  // Use the defined tool schemas
   const tools = [
-    {
-      name: "executeShellCommand",
-      description: "Execute a shell command and return the result",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          command: {
-            type: "string",
-            description: "The shell command to execute",
-          },
-          stdinInput: {
-            type: "string",
-            description: "Optional content to pipe to the command as stdin",
-          },
-        },
-        required: ["command"],
-      },
-    },
-    {
-      name: "finished",
-      description: "Call this tool when the task is complete to end the conversation",
-      input_schema: {
-        type: "object" as const,
-        properties: {},
-        required: [],
-      },
-    },
+    executeShellCommandSchema,
+    finishedSchema,
   ];
 
   const systemPrompt =
     `You are an AI agent that can run shell commands to accomplish tasks.\n` +
-    `You have access to the following tools:\n` +
-    `1. executeShellCommand - Allows you to run shell commands\n` +
-    `2. finished - Call this tool when the task is complete to end the conversation\n` +
-    `Use these tools to complete the user's task.\n` +
+    `Use the provided tools to complete the user's task.\n` +
     `When the task is complete, call the finished tool to indicate completion.`;
 
   let messages: any[] = [
@@ -141,12 +132,11 @@ const runAgentLoop = async (initialPrompt: string) => {
         hasToolUse = true;
         if (block.name === "executeShellCommand") {
           // Type assertion to access the input properties
-          const input = block.input as { command: string; stdinInput?: string };
+          const input = block.input as { command: string };
 
           // Execute the shell command
           const result = await executeShellCommand(
-            input.command,
-            input.stdinInput
+            input.command
           );
 
           // Add the tool result to messages

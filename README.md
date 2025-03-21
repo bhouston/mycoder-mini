@@ -8,7 +8,6 @@ A minimal TypeScript command line tool for agentic coding powered by Anthropic's
 - Provides two tools:
   - `executeShellCommand`: the ability to run shell commands
   - `finished`: signals task completion
-- Supports piping stdin to commands
 - Automatically stops when the agent calls the `finished` tool
 - 10-second timeout on shell commands to prevent hangs
 - Displays Claude's thinking process and command execution in real-time
