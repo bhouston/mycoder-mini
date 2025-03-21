@@ -8,17 +8,15 @@
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "start": "node dist/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ben Houston (neuralsoft@gmail.com)",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "@types/node": "^22.13.11",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "@types/node": "^22",
+    "typescript": "^5"
   }
 }

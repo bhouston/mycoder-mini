@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Anthropic } from "@anthropic-ai/sdk";
+import { MessageParam } from "@anthropic-ai/sdk/resources";
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -19,8 +20,8 @@ const anthropic = new Anthropic({
 });
 
 // Define tool schemas
-const executeShellCommandSchema = {
-  name: "executeShellCommand",
+const shellCommandSchema = {
+  name: "shellCommand",
   description: "Execute a shell command and return the result",
   input_schema: {
     type: "object" as const,
@@ -34,19 +35,8 @@ const executeShellCommandSchema = {
   },
 };
 
-const finishedSchema = {
-  name: "finished",
-  description:
-    "Call this tool when the task is complete to end the conversation",
-  input_schema: {
-    type: "object" as const,
-    properties: {},
-    required: [],
-  },
-};
-
 // Simplified executeShellCommand function using promisify with exec
-const executeShellCommand = async (
+const shellCommand = async (
   command: string,
   timeout: number = 10000
 ) => {
@@ -74,17 +64,29 @@ const executeShellCommand = async (
   }
 };
 
+
+const finishedSchema = {
+  name: "finished",
+  description:
+    "Call this tool when the task is complete to end the conversation",
+  input_schema: {
+    type: "object" as const,
+    properties: {},
+    required: [],
+  },
+};
+
 // Function to run the agent loop
 const runAgentLoop = async (initialPrompt: string) => {
   // Use the defined tool schemas
-  const tools = [executeShellCommandSchema, finishedSchema];
+  const tools = [shellCommandSchema, finishedSchema];
 
   const systemPrompt =
     `You are an AI agent that can run shell commands to accomplish tasks.\n` +
     `Use the provided tools to complete the user's task.\n` +
     `When the task is complete, call the finished tool to indicate completion.`;
 
-  let messages: any[] = [
+  let messages: MessageParam[] = [
     {
       role: "user",
       content: initialPrompt,
@@ -121,11 +123,11 @@ const runAgentLoop = async (initialPrompt: string) => {
       if (block.type === "tool_use") {
         hasToolUse = true;
         switch (block.name) {
-          case "executeShellCommand": {
+          case "shellCommand": {
             // Type assertion to access the input properties
             const input = block.input as { command: string };
             // Execute the shell command
-            const result = await executeShellCommand(input.command);
+            const result = await shellCommand(input.command);
             // Add the tool result to messages
             messages.push({
               role: "user",
