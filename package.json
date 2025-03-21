@@ -1,0 +1,24 @@
+{
+  "name": "mycoder-minimal",
+  "version": "1.0.0",
+  "description": "Minimal TypeScript agentic coder using Anthropic Claude",
+  "main": "dist/index.js",
+  "bin": {
+    "mycoder": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@types/node": "^22.13.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}
