@@ -17,7 +17,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@types/node": "^22",
-    "cross-spawn": "^7.0.6",
     "typescript": "^5"
   },
   "devDependencies": {

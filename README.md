@@ -1,32 +1,60 @@
-# MyCoder Minimal
+# MyCoder-Mini
 
-A minimal TypeScript command line tool for agentic coding powered by Anthropic's Claude.
+A minimal TypeScript command line tool for agentic coding powered by Anthropic's Claude.  Less than 200 lines of code.
+
+For background on creating your own Agentic Coder, please see [Building an Agentic Coder from Scratch](https://benhouston3d.com/blog/building-an-agentic-code-from-scratch).
+
+> [!NOTE]
+> If you are looking for a full-featured agentic coder, please see the full [MyCoder](https://github.com/drivecore/mycoder) project.
 
 ## Features
 
 - Uses Anthropic Claude SDK with native tool calling support
 - Provides two tools:
-  - `executeShellCommand`: the ability to run shell commands
+  - `shellCommand`: the ability to run shell commands
   - `finished`: signals task completion
 - Automatically stops when the agent calls the `finished` tool
 - 10-second timeout on shell commands to prevent hangs
 - Displays Claude's thinking process and command execution in real-time
 
-## Installation
+## Quick Start
 
-1. Clone this repository
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Build the project:
-   ```
-   npm run build
-   ```
-4. (Optional) Link the package globally:
-   ```
-   npm link
-   ```
+To get going using this:
+
+```bash
+# checkout and build
+git checkout git@github.com:bhouston/mycoder-mini.git
+npm install
+npm run build
+# install globally
+npm link
+
+# use anywhere!
+mycoder-mini "Insert your prompt here"
+```
+
+## How It Works
+
+1. The tool takes your prompt and sends it to Claude
+2. Claude analyzes the task and decides what shell commands to run using native tool calling
+3. The tool executes the commands and returns the results to Claude
+4. Claude continues this loop until it determines the task is complete
+5. The agent stops when it calls the `finished` tool
+
+The implementation uses Claude's native tool calling API, which provides a more structured way for the AI to invoke tools compared to parsing text responses. This results in a more reliable and cleaner interaction between the AI and the shell commands.
+
+## Developer setup
+
+```bash
+# clone repo
+git checkout git@github.com:bhouston/mycoder-minimal.git
+# install deps
+npm install
+# build
+npm run build
+# start cli tool
+npm start "Insert your prompt here"
+```
 
 ## Usage
 
@@ -40,7 +68,7 @@ Then run the tool with a prompt:
 
 ```bash
 # If you've linked the package globally
-mycoder "Write a simple hello world program in Python"
+mycoder-mini "Write a simple hello world program in Python"
 
 # Or run directly
 npm start "Write a simple hello world program in Python"
@@ -49,26 +77,6 @@ npm start "Write a simple hello world program in Python"
 node dist/index.js "Write a simple hello world program in Python"
 ```
 
-## How It Works
-
-1. The tool takes your prompt and sends it to Claude
-2. Claude analyzes the task and decides what shell commands to run using native tool calling
-3. The tool executes the commands and returns the results to Claude
-4. Claude continues this loop until it determines the task is complete
-5. The agent stops when it calls the `finished` tool
-
-The implementation uses Claude's native tool calling API, which provides a more structured way for the AI to invoke tools compared to parsing text responses. This results in a more reliable and cleaner interaction between the AI and the shell commands.
-
-## Development
-
-For development, you can use:
-
-```bash
-npm run dev "Your prompt here"
-```
-
-This will run the TypeScript code directly using ts-node.
-
 ## License
 
-ISC
+MIT
