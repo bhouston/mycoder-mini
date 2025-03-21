@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 import { Anthropic } from "@anthropic-ai/sdk";
-import { spawn } from "child_process";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+// Promisified exec function
+const execPromise = promisify(exec);
 
 // Check for API key
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -13,13 +17,6 @@ if (!process.env.ANTHROPIC_API_KEY) {
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
-
-// Shell command execution tool
-interface ShellCommandResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number | null;
-}
 
 // Define tool schemas
 const executeShellCommandSchema = {
@@ -39,7 +36,8 @@ const executeShellCommandSchema = {
 
 const finishedSchema = {
   name: "finished",
-  description: "Call this tool when the task is complete to end the conversation",
+  description:
+    "Call this tool when the task is complete to end the conversation",
   input_schema: {
     type: "object" as const,
     properties: {},
@@ -47,50 +45,39 @@ const finishedSchema = {
   },
 };
 
+// Simplified executeShellCommand function using promisify with exec
 const executeShellCommand = async (
   command: string,
   timeout: number = 10000
-): Promise<ShellCommandResult> => {
-  return new Promise((resolve) => {
-    console.log(`\n🔧 Executing shell command: ${command}`);
-
-    // Spawn the process
-    const childProcess = spawn(command, [], { shell: true });
-
-    let stdout = "";
-    let stderr = "";
-
-    // Set up timeout
-    const timeoutId = setTimeout(() => {
+) => {
+  console.log(`\n🔧 Executing shell command: ${command}`);
+  
+  try {
+    // Execute the command with timeout
+    const { stdout, stderr } = await execPromise(command, { timeout });
+    return {
+      stdout,
+      stderr,
+      exitCode: 0,
+    };
+  } catch (error: any) {
+    // Handle errors, including timeouts
+    if (error.signal === 'SIGTERM') {
       console.log(`\n⏱️ Command timed out after ${timeout / 1000} seconds`);
-      childProcess.kill();
-    }, timeout);
-    childProcess.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-    childProcess.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    // Handle process completion
-    childProcess.on("close", (code) => {
-      clearTimeout(timeoutId);
-      resolve({
-        stdout,
-        stderr,
-        exitCode: code,
-      });
-    });
-  });
+    }
+    
+    return {
+      stdout: error.stdout || "",
+      stderr: error.stderr || error.message || "Unknown error occurred",
+      exitCode: error.code || 1,
+    };
+  }
 };
 
 // Function to run the agent loop
 const runAgentLoop = async (initialPrompt: string) => {
   // Use the defined tool schemas
-  const tools = [
-    executeShellCommandSchema,
-    finishedSchema,
-  ];
+  const tools = [executeShellCommandSchema, finishedSchema];
 
   const systemPrompt =
     `You are an AI agent that can run shell commands to accomplish tasks.\n` +
@@ -128,46 +115,36 @@ const runAgentLoop = async (initialPrompt: string) => {
     for (const block of response.content) {
       if (block.type === "text") {
         console.log(`\n🤖 ${block.text}`);
-      } else if (block.type === "tool_use") {
+        continue;
+      }
+
+      if (block.type === "tool_use") {
         hasToolUse = true;
-        if (block.name === "executeShellCommand") {
-          // Type assertion to access the input properties
-          const input = block.input as { command: string };
-
-          // Execute the shell command
-          const result = await executeShellCommand(
-            input.command
-          );
-
-          // Add the tool result to messages
-          messages.push({
-            role: "user",
-            content: [
-              {
-                type: "tool_result",
-                tool_use_id: block.id,
-                content: JSON.stringify(result),
-              },
-            ],
-          });
-        } else if (block.name === "finished") {
-          console.log("\\n✅ Task completed!");
-          
-          // Add empty tool result to messages
-          messages.push({
-            role: "user",
-            content: [
-              {
-                type: "tool_result",
-                tool_use_id: block.id,
-                content: "{}",
-              },
-            ],
-          });
-          
-          return;
+        switch (block.name) {
+          case "executeShellCommand": {
+            // Type assertion to access the input properties
+            const input = block.input as { command: string };
+            // Execute the shell command
+            const result = await executeShellCommand(input.command);
+            // Add the tool result to messages
+            messages.push({
+              role: "user",
+              content: [
+                {
+                  type: "tool_result",
+                  tool_use_id: block.id,
+                  content: JSON.stringify(result),
+                },
+              ],
+            });
+            break;
+          }
+          case "finished":
+            console.log("\\n✅ Task completed!");
+            return;
         }
       }
+      continue;
     }
 
     // If no tool was used and task is not finished, prompt for next step
