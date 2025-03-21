@@ -1,10 +1,10 @@
 {
-  "name": "mycoder-minimal",
+  "name": "mycoder-mini",
   "version": "1.0.0",
   "description": "Minimal TypeScript agentic coder using Anthropic Claude",
   "main": "dist/index.js",
   "bin": {
-    "mycoder": "./dist/index.js"
+    "mycoder-mini": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
