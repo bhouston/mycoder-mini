@@ -4,6 +4,7 @@ import { Anthropic } from "@anthropic-ai/sdk";
 import { MessageParam } from "@anthropic-ai/sdk/resources";
 import { exec } from "child_process";
 import { promisify } from "util";
+import crossSpawn from "cross-spawn";
 
 // Promisified exec function
 const execPromise = promisify(exec);
