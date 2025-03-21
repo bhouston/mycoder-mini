@@ -5,9 +5,11 @@ A minimal TypeScript command line tool for agentic coding powered by Anthropic's
 ## Features
 
 - Uses Anthropic Claude SDK with native tool calling support
-- Provides a single tool: the ability to run shell commands
+- Provides two tools:
+  - `executeShellCommand`: the ability to run shell commands
+  - `finished`: signals task completion
 - Supports piping stdin to commands
-- Automatically stops when the agent returns "**TASK FINISHED**"
+- Automatically stops when the agent calls the `finished` tool
 - 10-second timeout on shell commands to prevent hangs
 - Displays Claude's thinking process and command execution in real-time
 
@@ -54,7 +56,7 @@ node dist/index.js "Write a simple hello world program in Python"
 2. Claude analyzes the task and decides what shell commands to run using native tool calling
 3. The tool executes the commands and returns the results to Claude
 4. Claude continues this loop until it determines the task is complete
-5. The agent stops when it returns "**TASK FINISHED**"
+5. The agent stops when it calls the `finished` tool
 
 The implementation uses Claude's native tool calling API, which provides a more structured way for the AI to invoke tools compared to parsing text responses. This results in a more reliable and cleaner interaction between the AI and the shell commands.
 

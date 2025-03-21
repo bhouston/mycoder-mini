@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { Anthropic } from '@anthropic-ai/sdk';
-import { spawn } from 'child_process';
+import { Anthropic } from "@anthropic-ai/sdk";
+import { spawn } from "child_process";
 
 // Check for API key
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('Error: ANTHROPIC_API_KEY environment variable is required');
+  console.error("Error: ANTHROPIC_API_KEY environment variable is required");
   process.exit(1);
 }
 
@@ -22,49 +22,41 @@ interface ShellCommandResult {
 }
 
 const executeShellCommand = async (
-  command: string, 
-  stdinInput?: string, 
+  command: string,
+  stdinInput?: string,
   timeout: number = 10000
 ): Promise<ShellCommandResult> => {
   return new Promise((resolve) => {
     console.log(`\n🔧 Executing shell command: ${command}`);
-    
+
     // Spawn the process
     const childProcess = spawn(command, [], { shell: true });
-    
-    let stdout = '';
-    let stderr = '';
-    
+
+    let stdout = "";
+    let stderr = "";
+
     // Set up timeout
     const timeoutId = setTimeout(() => {
-      console.log(`\n⏱️ Command timed out after ${timeout/1000} seconds`);
+      console.log(`\n⏱️ Command timed out after ${timeout / 1000} seconds`);
       childProcess.kill();
     }, timeout);
-    
-    // Collect stdout
-    childProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      stdout += output;
-      process.stdout.write(output);
+    childProcess.stdout.on("data", (data) => {
+      stdout += data.toString();
     });
-    
-    // Collect stderr
-    childProcess.stderr.on('data', (data) => {
-      const output = data.toString();
-      stderr += output;
-      process.stderr.write(output);
+    childProcess.stderr.on("data", (data) => {
+      stderr += data.toString();
     });
-    
+
     // Handle process completion
-    childProcess.on('close', (code) => {
+    childProcess.on("close", (code) => {
       clearTimeout(timeoutId);
       resolve({
         stdout,
         stderr,
-        exitCode: code
+        exitCode: code,
       });
     });
-    
+
     // Provide stdin input if specified
     if (stdinInput) {
       childProcess.stdin.write(stdinInput);
@@ -75,45 +67,57 @@ const executeShellCommand = async (
 
 // Function to run the agent loop
 const runAgentLoop = async (initialPrompt: string) => {
-  // Define the shell command tool
+  // Define the tools
   const tools = [
     {
-      name: 'executeShellCommand',
-      description: 'Execute a shell command and return the result',
+      name: "executeShellCommand",
+      description: "Execute a shell command and return the result",
       input_schema: {
-        type: 'object' as const,
+        type: "object" as const,
         properties: {
           command: {
-            type: 'string',
-            description: 'The shell command to execute'
+            type: "string",
+            description: "The shell command to execute",
           },
           stdinInput: {
-            type: 'string',
-            description: 'Optional content to pipe to the command as stdin'
-          }
+            type: "string",
+            description: "Optional content to pipe to the command as stdin",
+          },
         },
-        required: ['command']
-      }
-    }
+        required: ["command"],
+      },
+    },
+    {
+      name: "finished",
+      description: "Call this tool when the task is complete to end the conversation",
+      input_schema: {
+        type: "object" as const,
+        properties: {},
+        required: [],
+      },
+    },
   ];
 
-  const systemPrompt = `You are an AI agent that can run shell commands to accomplish tasks.
-You have access to the executeShellCommand tool that allows you to run shell commands.
-Use this tool to complete the user's task.
-When the task is complete, respond with "**TASK FINISHED**".`;
+  const systemPrompt =
+    `You are an AI agent that can run shell commands to accomplish tasks.\n` +
+    `You have access to the following tools:\n` +
+    `1. executeShellCommand - Allows you to run shell commands\n` +
+    `2. finished - Call this tool when the task is complete to end the conversation\n` +
+    `Use these tools to complete the user's task.\n` +
+    `When the task is complete, call the finished tool to indicate completion.`;
 
   let messages: any[] = [
     {
-      role: 'user',
-      content: initialPrompt
-    }
+      role: "user",
+      content: initialPrompt,
+    },
   ];
 
   while (true) {
     // Get response from Claude
-    console.log('\n🤔 Thinking...');
+    console.log("\n🤔 Thinking...");
     const response = await anthropic.messages.create({
-      model: 'claude-3-opus-20240229',
+      model: "claude-3-opus-20240229",
       max_tokens: 4000,
       messages: messages,
       system: systemPrompt,
@@ -123,53 +127,64 @@ When the task is complete, respond with "**TASK FINISHED**".`;
 
     // Add the assistant's full message to the conversation history
     messages.push({
-      role: 'assistant',
-      content: response.content
+      role: "assistant",
+      content: response.content,
     });
 
     // Process each content block from the response
     let hasToolUse = false;
-    
+
     for (const block of response.content) {
-      if (block.type === 'text') {
+      if (block.type === "text") {
         console.log(`\n🤖 ${block.text}`);
-        
-        // Check if task is finished
-        if (block.text.includes('**TASK FINISHED**')) {
-          console.log('\n✅ Task completed!');
-          return;
-        }
-      } else if (block.type === 'tool_use') {
+      } else if (block.type === "tool_use") {
         hasToolUse = true;
-        if (block.name === 'executeShellCommand') {
+        if (block.name === "executeShellCommand") {
           // Type assertion to access the input properties
           const input = block.input as { command: string; stdinInput?: string };
-          
+
           // Execute the shell command
-          const result = await executeShellCommand(input.command, input.stdinInput);
-          
+          const result = await executeShellCommand(
+            input.command,
+            input.stdinInput
+          );
+
           // Add the tool result to messages
           messages.push({
-            role: 'user',
-            content: [{
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: JSON.stringify({
-                exitCode: result.exitCode,
-                stdout: result.stdout,
-                stderr: result.stderr
-              })
-            }]
+            role: "user",
+            content: [
+              {
+                type: "tool_result",
+                tool_use_id: block.id,
+                content: JSON.stringify(result),
+              },
+            ],
           });
+        } else if (block.name === "finished") {
+          console.log("\\n✅ Task completed!");
+          
+          // Add empty tool result to messages
+          messages.push({
+            role: "user",
+            content: [
+              {
+                type: "tool_result",
+                tool_use_id: block.id,
+                content: "{}",
+              },
+            ],
+          });
+          
+          return;
         }
       }
     }
-    
+
     // If no tool was used and task is not finished, prompt for next step
     if (!hasToolUse) {
       messages.push({
-        role: 'user',
-        content: "What's the next step?"
+        role: "user",
+        content: "What's the next step?",
       });
     }
   }
@@ -179,18 +194,17 @@ When the task is complete, respond with "**TASK FINISHED**".`;
 const main = async () => {
   try {
     // Get the prompt from command line arguments
-    const prompt = process.argv.slice(2).join(' ');
-    
+    const prompt = process.argv.slice(2).join(" ");
+
     if (!prompt) {
-      console.error('Error: Please provide a prompt as the first argument');
+      console.error("Error: Please provide a prompt as the first argument");
       process.exit(1);
     }
-    
+
     console.log(`\n🚀 Starting agentic coder with prompt: "${prompt}"`);
     await runAgentLoop(prompt);
-    
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     process.exit(1);
   }
 };
