@@ -2,7 +2,7 @@
 
 A minimal TypeScript command line tool for agentic coding powered by Anthropic's Claude.  Less than 200 lines of code.
 
-For background on creating your own Agentic Coder, please see [Building an Agentic Coder from Scratch](https://benhouston3d.com/blog/building-an-agentic-code-from-scratch).
+For background on creating your own Agentic Coder, please see my Ottawa Forward JS talk [Building an Agentic Coder from Scratch](https://benhouston3d.com/blog/building-an-agentic-code-from-scratch) and my write-up of this experiment: [What is the Most Minimal Agentic Coder You Can Write?](https://benhouston3d.com/blog/minimal-agentic-coder)
 
 > [!NOTE]
 > If you are looking for a full-featured agentic coder, please see the full [MyCoder](https://github.com/drivecore/mycoder) project.
